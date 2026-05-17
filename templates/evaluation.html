@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Evaluation: AI Email Classifier</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <script>document.documentElement.setAttribute('data-theme', localStorage.getItem('theme') || 'dark');</script>
+</head>
+<body>
+
+    {# --- Title banner ------------------------------------------------ #}
+    <header class="banner">
+        <div class="banner-inner">
+            <div class="banner-text">
+                <h1>AI Email Classifier</h1>
+                <p class="subtitle">
+                    {% if data %}
+                        Mean ± standard deviation over {{ data.n_runs }} runs.
+                    {% else %}
+                        Evaluation not generated yet.
+                    {% endif %}
+                </p>
+            </div>
+            <button class="theme-toggle" id="themeToggle" aria-label="Toggle light/dark mode">
+                <span class="toggle-icon">☀️</span> Light
+            </button>
+        </div>
+    </header>
+
+    {# --- Top navigation --------------------------------------------- #}
+    <nav class="nav">
+        <div class="nav-inner">
+            <a href="{{ url_for('index') }}">Classify</a>
+            <a href="{{ url_for('history') }}">History</a>
+            <a href="{{ url_for('evaluation') }}" class="active">Evaluation</a>
+        </div>
+    </nav>
+
+    <main class="container">
+
+    {# --- Empty state or saved evaluation table ---------------------- #}
+    {% if not data %}
+        <section class="card">
+            <h2>No evaluation results yet</h2>
+            <p>Run the evaluation script to populate this page:</p>
+            <div class="snippet-block">
+                python evaluate.py            # 5 runs (default)<br>
+                python evaluate.py -n 10      # 10 runs
+            </div>
+        </section>
+    {% else %}
+        {% set display = {'MLP': 'Multilayer Perceptron'} %}
+        <section class="card">
+            <h2>{{ data.n_runs }}-Run Model Evaluation</h2>
+            <div class="table-wrap">
+                <table class="history-table">
+                    <thead>
+                        <tr>
+                            <th>Model</th>
+                            <th>Accuracy</th>
+                            <th>Precision</th>
+                            <th>Recall</th>
+                            <th>F1-score</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for model, metrics in data.stage1.items() %}
+                            <tr>
+                                <td><strong>{{ display.get(model, model) }}</strong></td>
+                                {% for key in ['accuracy', 'precision', 'recall', 'f1'] %}
+                                    <td>
+                                        {{ "%.2f"|format(metrics[key].mean * 100) }}%
+                                        ± {{ "%.2f"|format(metrics[key].std * 100) }}%
+                                    </td>
+                                {% endfor %}
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    {% endif %}
+
+    </main>
+
+{# --- Theme toggle script --------------------------------------------- #}
+<script>
+    (function () {
+        var saved = localStorage.getItem('theme') || 'dark';
+        document.documentElement.setAttribute('data-theme', saved);
+        var btn = document.getElementById('themeToggle');
+        function updateBtn(theme) {
+            btn.innerHTML = theme === 'dark'
+                ? '<span class="toggle-icon">☀️</span> Light'
+                : '<span class="toggle-icon">🌙</span> Dark';
+        }
+        updateBtn(saved);
+        btn.addEventListener('click', function () {
+            var current = document.documentElement.getAttribute('data-theme');
+            var next = current === 'dark' ? 'light' : 'dark';
+            document.documentElement.setAttribute('data-theme', next);
+            localStorage.setItem('theme', next);
+            updateBtn(next);
+        });
+    })();
+</script>
+</body>
+</html>

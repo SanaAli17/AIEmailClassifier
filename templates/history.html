@@ -1,0 +1,152 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>AI Email Classifier</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <script>document.documentElement.setAttribute('data-theme', localStorage.getItem('theme') || 'dark');</script>
+</head>
+<body>
+
+    {# --- Title banner ------------------------------------------------ #}
+    <header class="banner">
+        <div class="banner-inner">
+            <div class="banner-text">
+                <h1>AI Email Classifier</h1>
+                <p class="subtitle">
+                    Past predictions: {{ total }} record{{ '' if total == 1 else 's' }}.
+                </p>
+            </div>
+            <button class="theme-toggle" id="themeToggle" aria-label="Toggle light/dark mode">
+                <span class="toggle-icon">☀️</span> Light
+            </button>
+        </div>
+    </header>
+
+    {# --- Top navigation --------------------------------------------- #}
+    <nav class="nav">
+        <div class="nav-inner">
+            <a href="{{ url_for('index') }}">Classify</a>
+            <a href="{{ url_for('history') }}" class="active">History</a>
+            <a href="{{ url_for('evaluation') }}">Evaluation</a>
+        </div>
+    </nav>
+
+    <main class="container">
+
+        {# --- Distribution pie charts ------------------------------ #}
+        <div class="charts-grid">
+            <div class="chart-card" style="text-align: center;">
+                <h2 style="margin-top: 0;">Spam vs. ham</h2>
+                <img src="{{ chart_distribution }}"
+                     alt="Pie chart of ham vs. spam predictions"
+                     style="margin: 0 auto; max-height: 360px;">
+            </div>
+            <div class="chart-card" style="text-align: center;">
+                <h2 style="margin-top: 0;">Ham categories</h2>
+                <img src="{{ chart_categories }}"
+                     alt="Pie chart of work / personal / promotion predictions"
+                     style="margin: 0 auto; max-height: 360px;">
+            </div>
+        </div>
+
+        {# --- Past predictions table ------------------------------ #}
+        <section class="card" style="margin-top: 24px;">
+            <div class="toolbar">
+                <h2>All predictions</h2>
+                {% if records %}
+                    {# Clear-history form, guarded by a JS confirm prompt. #}
+                    <form action="{{ url_for('clear_history') }}"
+                          method="POST"
+                          onsubmit="return confirm('Delete all prediction history? This cannot be undone.');">
+                        <button type="submit" class="btn btn-danger">Clear History</button>
+                    </form>
+                {% endif %}
+            </div>
+
+            {% if records %}
+                <div class="table-wrap">
+                    <table class="history-table">
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>Email snippet</th>
+                                <th>Label</th>
+                                <th>Confidence</th>
+                                <th>Sentiment</th>
+                                <th>Model</th>
+                                <th>Date / time</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for r in records %}
+                                <tr>
+                                    <td>{{ r.id }}</td>
+                                    <td>
+                                        {# `title` lets the user hover to see the full text. #}
+                                        <div class="col-snippet" title="{{ r.full_text }}">
+                                            {{ r.email_snippet }}
+                                        </div>
+                                    </td>
+                                    <td>
+                                        {% if r.label == 'spam' %}
+                                            <span class="label-badge label-badge--sm label-spam">Spam</span>
+                                        {% else %}
+                                            <span class="label-badge label-badge--sm label-ham">Ham</span>
+                                            {% if r.category %}
+                                                <span class="label-badge label-badge--sm category-{{ r.category }}">
+                                                    {{ r.category.capitalize() }}
+                                                </span>
+                                            {% endif %}
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ "%.1f"|format(r.confidence * 100) }}%</td>
+                                    <td>
+                                        <span class="sentiment-chip sentiment-{{ r.sentiment }}">
+                                            {{ r.sentiment }}
+                                        </span>
+                                    </td>
+                                    <td>{{ r.model_used }}</td>
+                                    {# Convert ISO `2026-05-10T12:34:56` into a friendlier display. #}
+                                    <td>{{ r.timestamp.replace('T', ' ') }}</td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <div class="empty-state">
+                    <p>
+                        No predictions yet: 
+                        <a href="{{ url_for('index') }}">classify your first email</a>.
+                    </p>
+                </div>
+            {% endif %}
+        </section>
+
+    </main>
+
+{# --- Theme toggle script --------------------------------------------- #}
+<script>
+    (function () {
+        var saved = localStorage.getItem('theme') || 'dark';
+        document.documentElement.setAttribute('data-theme', saved);
+        var btn = document.getElementById('themeToggle');
+        function updateBtn(theme) {
+            btn.innerHTML = theme === 'dark'
+                ? '<span class="toggle-icon">☀️</span> Light'
+                : '<span class="toggle-icon">🌙</span> Dark';
+        }
+        updateBtn(saved);
+        btn.addEventListener('click', function () {
+            var current = document.documentElement.getAttribute('data-theme');
+            var next = current === 'dark' ? 'light' : 'dark';
+            document.documentElement.setAttribute('data-theme', next);
+            localStorage.setItem('theme', next);
+            updateBtn(next);
+        });
+    })();
+</script>
+</body>
+</html>

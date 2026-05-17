@@ -1,0 +1,147 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>AI Email Classifier</title>
+    {# All styles live in static/style.css #}
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <script>document.documentElement.setAttribute('data-theme', localStorage.getItem('theme') || 'dark');</script>
+</head>
+<body>
+
+    {# --- Title banner -------------------------------------------------- #}
+    <header class="banner">
+        <div class="banner-inner">
+            <div class="banner-text">
+                <h1>AI Email Classifier</h1>
+                <p class="subtitle">
+                    Detect spam vs. legitimate email with classical ML,
+                    Naive Bayes, KNN, or MLP (multi-layer perceptron).
+                </p>
+            </div>
+            <button class="theme-toggle" id="themeToggle" aria-label="Toggle light/dark mode">
+                <span class="toggle-icon">☀️</span> Light
+            </button>
+        </div>
+    </header>
+
+    {# --- Top navigation ----------------------------------------------- #}
+    <nav class="nav">
+        <div class="nav-inner">
+            <a href="{{ url_for('index') }}" class="active">Classify</a>
+            <a href="{{ url_for('history') }}">History</a>
+            <a href="{{ url_for('evaluation') }}">Evaluation</a>
+        </div>
+    </nav>
+
+    {# --- Main two-column layout: form + sidebar ----------------------- #}
+    <main class="container">
+        <div class="split-2">
+
+            {# ---- Form card -------------------------------------------- #}
+            <section class="card">
+                <h2>Classify an email</h2>
+
+                <form action="{{ url_for('classify') }}"
+                      method="POST"
+                      enctype="multipart/form-data">
+
+                    {# Textarea for raw email text. #}
+                    <div class="form-row">
+                        <label for="email_text">Email body</label>
+                        <textarea
+                            id="email_text"
+                            name="email_text"
+                            placeholder="Paste an email here, e.g. 'Congratulations! You have won a $1000 gift card. Click here to claim...'"
+                        ></textarea>
+                    </div>
+
+                    {# Optional .txt upload: used only when textarea is empty. #}
+                    <div class="form-row">
+                        <label for="email_file">…or upload a .txt file</label>
+                        <input id="email_file"
+                               name="email_file"
+                               type="file"
+                               accept=".txt,text/plain">
+                        <div class="hint">
+                            Used only when the textarea above is empty. Max 2&nbsp;MB.
+                        </div>
+                    </div>
+
+                    {# Model picker — populated server-side from available_models(). #}
+                    <div class="form-row">
+                        <label for="model">Model</label>
+                        <select id="model" name="model">
+                            {% for m in models %}
+                                <option value="{{ m }}">{{ m }}</option>
+                            {% endfor %}
+                        </select>
+                        <div class="hint">
+                            Naive Bayes is fastest; KNN is similarity-based;
+                            MLP is a multi-layer neural network.
+                        </div>
+                    </div>
+
+                    <div class="actions">
+                        <button type="submit" class="btn">Classify Email</button>
+                        <a href="{{ url_for('history') }}" class="btn btn-secondary">View history</a>
+                    </div>
+                </form>
+            </section>
+
+            {# ---- Instructions sidebar -------------------------------- #}
+            <aside class="card">
+                <h2>How it works</h2>
+                <ul class="tip-list">
+                    <li>
+                        <strong>1. Paste or upload</strong>
+                        Provide the email body as plain text or a .txt file.
+                    </li>
+                    <li>
+                        <strong>2. Pick a model</strong>
+                        Choose between three trained classifiers.
+                    </li>
+                    <li>
+                        <strong>3. Preprocessing</strong>
+                        HTML stripped, lowercased, tokenized, stopwords removed,
+                        WordNet-lemmatized.
+                    </li>
+                    <li>
+                        <strong>4. TF-IDF + ML</strong>
+                        The cleaned text is vectorised and scored.
+                    </li>
+                    <li>
+                        <strong>5. You get</strong>
+                        Label, category (work / personal / promotion for ham),
+                        confidence, sentiment, top-10 keywords, and live charts.
+                    </li>
+                </ul>
+            </aside>
+
+        </div>
+    </main>
+
+{# --- Theme toggle script --------------------------------------------- #}
+<script>
+    (function () {
+        var saved = localStorage.getItem('theme') || 'dark';
+        document.documentElement.setAttribute('data-theme', saved);
+        var btn = document.getElementById('themeToggle');
+        function updateBtn(theme) {
+            btn.innerHTML = theme === 'dark'
+                ? '<span class="toggle-icon">☀️</span> Light'
+                : '<span class="toggle-icon">🌙</span> Dark';
+        }
+        updateBtn(saved);
+        btn.addEventListener('click', function () {
+            var current = document.documentElement.getAttribute('data-theme');
+            var next = current === 'dark' ? 'light' : 'dark';
+            document.documentElement.setAttribute('data-theme', next);
+            localStorage.setItem('theme', next);
+            updateBtn(next);
+        });
+    })();
+</script>
+</body>
+</html>

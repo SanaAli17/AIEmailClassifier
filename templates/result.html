@@ -1,0 +1,160 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Result: AI Email Classifier</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <script>document.documentElement.setAttribute('data-theme', localStorage.getItem('theme') || 'dark');</script>
+</head>
+<body>
+
+    {# --- Title banner ------------------------------------------------- #}
+    <header class="banner">
+        <div class="banner-inner">
+            <div class="banner-text">
+                <h1>AI Email Classifier</h1>
+                <p class="subtitle">Classification result</p>
+            </div>
+            <button class="theme-toggle" id="themeToggle" aria-label="Toggle light/dark mode">
+                <span class="toggle-icon">☀️</span> Light
+            </button>
+        </div>
+    </header>
+
+    {# --- Top navigation --------------------------------------------- #}
+    <nav class="nav">
+        <div class="nav-inner">
+            <a href="{{ url_for('index') }}">Classify</a>
+            <a href="{{ url_for('history') }}">History</a>
+            <a href="{{ url_for('evaluation') }}">Evaluation</a>
+        </div>
+    </nav>
+
+    <main class="container">
+
+        {# --- Prediction summary card -------------------------------- #}
+        <section class="card">
+            {# Big badge: colour-coded by label. #}
+            {% if label == 'spam' %}
+                <span class="label-badge label-spam">Spam</span>
+            {% else %}
+                <span class="label-badge label-ham">Ham</span>
+                {# Stage-2 category badge (work/personal/promotion). #}
+                {% if category %}
+                    <span class="label-badge category-{{ category }}"
+                          title="Category confidence: {{ category_confidence_pct }}%">
+                        {{ category.capitalize() }}
+                    </span>
+                {% endif %}
+            {% endif %}
+
+            {# Three quick stats: confidence / sentiment / model used. #}
+            <div class="stat-row">
+                <div class="stat">
+                    <div class="stat-key">Confidence</div>
+                    <div class="stat-val">{{ confidence_pct }}%</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-key">Sentiment</div>
+                    <div class="stat-val">
+                        <span class="sentiment-chip sentiment-{{ sentiment }}">
+                            {{ sentiment }}
+                        </span>
+                    </div>
+                </div>
+                <div class="stat">
+                    <div class="stat-key">Model used</div>
+                    <div class="stat-val">{{ model }}</div>
+                </div>
+            </div>
+
+            {# Top 10 keywords as pill tags. #}
+            <h3 class="section-h2">Top keywords</h3>
+            {% if keywords %}
+                <div class="keyword-tags">
+                    {% for kw in keywords %}
+                        <span class="kw-tag">{{ kw }}</span>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <p class="empty-state" style="padding: 16px 0;">
+                    No in-vocabulary keywords detected.
+                </p>
+            {% endif %}
+
+            {# Email snippet preview. #}
+            <h3 class="section-h2">Email snippet</h3>
+            <div class="snippet-block">{{ email_snippet }}</div>
+        </section>
+
+        {# --- Three Matplotlib charts (base64 data URIs) ----------- #}
+        <div class="charts-grid">
+
+            <div class="chart-card">
+                <h2>Model performance</h2>
+                <img src="{{ chart_performance }}"
+                     alt="Bar chart: accuracy / precision / recall / F1 per model">
+            </div>
+
+            <div class="chart-card">
+                <h2>Word frequency (this email)</h2>
+                <img src="{{ chart_wordfreq }}"
+                     alt="Horizontal bar chart of top keyword TF-IDF scores">
+            </div>
+
+            <div class="chart-card">
+                <h2>Spam vs. ham (history)</h2>
+                <img src="{{ chart_distribution }}"
+                     alt="Pie chart of ham vs. spam predictions">
+            </div>
+
+            <div class="chart-card">
+                <h2>Ham categories (history)</h2>
+                <img src="{{ chart_categories }}"
+                     alt="Pie chart of work / personal / promotion predictions">
+            </div>
+
+        </div>
+
+        {# --- Action row -------------------------------------------- #}
+        <div class="actions">
+            <a href="{{ url_for('index') }}" class="btn">Classify Another Email</a>
+
+            {# Re-run the same email through every other available model. #}
+            {% for m in available_models if m != model %}
+                <form method="POST" action="{{ url_for('classify') }}" style="display:inline">
+                    <textarea name="email_text" style="display:none">{{ email_text }}</textarea>
+                    <input type="hidden" name="model" value="{{ m }}">
+                    <button type="submit" class="btn btn-secondary">Retry with {{ m }}</button>
+                </form>
+            {% endfor %}
+
+            <a href="{{ url_for('history') }}" class="btn btn-secondary">View history</a>
+        </div>
+
+    </main>
+
+{# --- Theme toggle script --------------------------------------------- #}
+<script>
+    (function () {
+        var saved = localStorage.getItem('theme') || 'dark';
+        document.documentElement.setAttribute('data-theme', saved);
+        var btn = document.getElementById('themeToggle');
+        function updateBtn(theme) {
+            btn.innerHTML = theme === 'dark'
+                ? '<span class="toggle-icon">☀️</span> Light'
+                : '<span class="toggle-icon">🌙</span> Dark';
+        }
+        updateBtn(saved);
+        btn.addEventListener('click', function () {
+            var current = document.documentElement.getAttribute('data-theme');
+            var next = current === 'dark' ? 'light' : 'dark';
+            document.documentElement.setAttribute('data-theme', next);
+            localStorage.setItem('theme', next);
+            updateBtn(next);
+        });
+    })();
+</script>
+</body>
+</html>
