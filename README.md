@@ -29,23 +29,19 @@ Flask backend with simple HTML pages.
 
 ## How To Run (from scratch)
 
-From inside the `mail-sense/` folder:
+From inside the folder:
 
 ```
-# 1. Create a virtual environment (recommended on macOS Homebrew Python)
-python3 -m venv .venv
-source .venv/bin/activate           # Windows: .venv\Scripts\activate
-
-# 2. Install dependencies
+# 1. Install dependencies
 pip install -r requirements.txt
 
-# 3. Train the models (writes 9 .pkl files into trained_models/)
+# 2. Train the models (writes 9 .pkl files into trained_models/)
 python train.py
 
-# 4. Run the 5-run evaluation (writes trained_models/evaluation.pkl)
+# 3. Run the 5-run evaluation (writes trained_models/evaluation.pkl)
 python evaluate.py                  # or:  python evaluate.py -n 10
 
-# 5. Start the web app
+# 4. Start the web app
 python app.py
 ```
 
@@ -58,13 +54,14 @@ http://127.0.0.1:5000
 Tabs: **Classify** (main form), **History** (past predictions),
 **Evaluation** (mean ± std table from `evaluate.py`).
 
-If you skip the venv, plain `pip install` will fail on Homebrew Python with
-`externally-managed-environment`. In that case use:
-`pip3 install -r requirements.txt --user --break-system-packages`.
 
 ## Dataset
 
-The project reads ONE file:
+The project uses the **Enron Spam Dataset** by Marcel Wiechmann, available on Kaggle:
+
+> https://www.kaggle.com/datasets/marcelwiechmann/enron-spam-data
+
+The dataset is read from:
 
 ```
 database/mail_dataset.csv
@@ -76,18 +73,6 @@ It has three columns:
 - `label` — `spam` or `ham`
 - `category` — `work`, `personal`, `promotion`, or empty
 
-34,058 rows total:
-
-- **Enron-Spam corpus** (Metsis, Androutsopoulos & Paliouras, CEAS 2006) —
-  33,818 rows labelled `ham` / `spam`.
-- **Short hand-labelled emails** — 240 rows (80 each) tagged with a
-  `category` of `work` / `personal` / `promotion`. These are also labelled `ham`
-  so stage 1 treats them as legitimate mail.
-
-`train.py` and `evaluate.py` both read this CSV directly with `pd.read_csv()`.
-The Flask app does **not** read the CSV at runtime — it only loads the trained
-`.pkl` files from `trained_models/`.
-
 ### Importing the Kaggle Enron Spam Data
 
 The Kaggle dataset from Marcel Wiechmann uses different column names:
@@ -96,23 +81,20 @@ The Kaggle dataset from Marcel Wiechmann uses different column names:
 Subject, Message, Spam/Ham, Date
 ```
 
-To replace the spam/ham rows with that dataset while keeping the local
-`work` / `personal` / `promotion` category rows, run:
+To import the dataset, run:
 
 ```
 python import_kaggle_dataset.py
 ```
 
-The script reads the dataset from the public GitHub mirror. You can also pass a
+The script downloads the dataset from the public GitHub mirror. You can also pass a
 downloaded CSV or ZIP file:
 
 ```
 python import_kaggle_dataset.py path/to/enron_spam_data.csv
 ```
 
-The script writes `database/mail_dataset.csv` and keeps the existing
-category-labelled rows so stage 2 still works. It does not keep the downloaded
-ZIP because the active CSV already contains the imported data.
+The script writes `database/mail_dataset.csv`.
 
 After importing, rebuild the generated model files:
 
@@ -124,31 +106,42 @@ python evaluate.py
 ## Project Layout
 
 ```
-mail-sense/
-├── app.py                  # Flask routes, SQLite + chart helpers
-├── train.py                # Trains 6 models, writes .pkl files
-├── evaluate.py             # 5-run mean ± std evaluation
+AIEmailClassifier/
+├── app.py                      # Flask routes, SQLite + chart helpers
+├── train.py                    # Trains 6 models, writes .pkl files
+├── evaluate.py                 # 5-run mean ± std evaluation
+├── import_kaggle_dataset.py    # Imports the Enron spam dataset
 ├── requirements.txt
 │
 ├── models/
-│   ├── preprocessor.py     # Text cleaning pipeline
-│   └── classifier.py       # Load .pkl + predict / keywords / sentiment
+│   ├── __init__.py
+│   ├── preprocessor.py         # Text cleaning pipeline
+│   └── classifier.py           # Load .pkl + predict / keywords / sentiment
 │
-├── trained_models/         # Output of train.py / evaluate.py (gitignored)
+├── trained_models/             # Output of train.py / evaluate.py (gitignored)
 │   ├── vectorizer.pkl
-│   ├── naive_bayes.pkl, knn.pkl, mlp.pkl, metrics.pkl
+│   ├── naive_bayes.pkl
+│   ├── knn.pkl
+│   ├── mlp.pkl
+│   ├── metrics.pkl
 │   ├── vectorizer_category.pkl
-│   ├── naive_bayes_category.pkl, knn_category.pkl, mlp_category.pkl
+│   ├── naive_bayes_category.pkl
+│   ├── knn_category.pkl
+│   ├── mlp_category.pkl
 │   └── evaluation.pkl
 │
-├── templates/              # Jinja2 HTML
-│   ├── index.html, result.html, history.html, evaluation.html
+├── templates/                  # Jinja2 HTML
+│   ├── index.html
+│   ├── result.html
+│   ├── history.html
+│   └── evaluation.html
 │
-├── static/style.css
+├── static/
+│   └── style.css
 │
 └── database/
-    ├── mail_dataset.csv    # The single dataset file
-    └── history.db          # SQLite predictions (created at runtime)
+    ├── mail_dataset.csv        # The dataset file
+    └── history.db              # SQLite predictions (created at runtime)
 ```
 
 ## Project Flow
@@ -163,8 +156,12 @@ User Input -> Preprocessing -> TF-IDF -> Trained Model -> Prediction -> GUI + Ch
 - The TF-IDF vectorizer is fit only on the training split, not the test split.
 - The history table is a tiny SQLite file (`database/history.db`); deleting it
   resets the history without touching the trained models.
-- If port 5000 is busy (macOS AirPlay Receiver uses it), edit the last line of
-  `app.py` and change `port=5000` to e.g. `port=5001`.
 - The `.pkl` files are Python-version sensitive. If a collaborator on a
   different Python version hits errors loading them, have them re-run
   `python train.py`.
+
+## License
+
+This project is released for educational and personal use only.
+
+The dataset used is the [Enron Spam Dataset](https://www.kaggle.com/datasets/marcelwiechmann/enron-spam-data) by Marcel Wiechmann, which is based on the Enron email corpus. Please refer to the dataset's own licensing terms before any commercial or redistribution use.
