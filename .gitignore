@@ -3,11 +3,6 @@ __pycache__/
 *.py[cod]
 *$py.class
 
-# Virtual environments
-venv/
-env/
-.venv/
-
 # Runtime database (SQLite)
 database/history.db
 *.sqlite
@@ -22,11 +17,6 @@ Thumbs.db
 .idea/
 .vscode/
 *.swp
-
-# Environment / secrets
-.env
-.env.*
-!.env.example
 
 # Logs
 *.log
